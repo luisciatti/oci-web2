@@ -1,0 +1,73 @@
+name: Deploy Core
+
+on:
+  workflow_dispatch:
+    inputs:
+      layer:
+        description: 'Layer a implantar'
+        required: true
+        type: choice
+        options:
+          - core/global
+          - core/security
+          - core/network
+      action:
+        description: 'Ação'
+        required: true
+        type: choice
+        options:
+          - plan
+          - apply
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment: oci-testhub   # troque pelo nome exato do seu Environment
+    defaults:
+      run:
+        working-directory: layer/${{ inputs.layer }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup OpenTofu
+        uses: opentofu/setup-opentofu@v1
+        with:
+          tofu_version: "1.12.5"
+
+      - name: Configure OCI credentials
+        run: |
+          mkdir -p ~/.oci
+          echo "${{ secrets.OCI_PRIVATE_KEY }}" > ~/.oci/key.pem
+          chmod 600 ~/.oci/key.pem
+          cat <<EOF > ~/.oci/config
+          [DEFAULT]
+          user=${{ secrets.OCI_USER_OCID }}
+          fingerprint=${{ secrets.OCI_FINGERPRINT }}
+          tenancy=${{ secrets.OCI_TENANCY_OCID }}
+          region=${{ secrets.OCI_REGION }}
+          key_file=~/.oci/key.pem
+          EOF
+
+      - name: Tofu Init
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          AWS_REQUEST_CHECKSUM_CALCULATION: when_required
+          AWS_RESPONSE_CHECKSUM_VALIDATION: when_required
+        run: tofu init
+
+      - name: Tofu Plan
+        if: inputs.action == 'plan'
+        env:
+          TF_VAR_tenancy_ocid: ${{ secrets.OCI_TENANCY_OCID }}
+          TF_VAR_region: ${{ secrets.OCI_REGION }}
+        run: tofu plan
+
+      - name: Tofu Apply
+        if: inputs.action == 'apply'
+        env:
+          TF_VAR_tenancy_ocid: ${{ secrets.OCI_TENANCY_OCID }}
+          TF_VAR_region: ${{ secrets.OCI_REGION }}
+        run: tofu apply -auto-approve

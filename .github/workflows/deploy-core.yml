@@ -22,7 +22,7 @@ on:
 jobs:
   deploy:
     runs-on: ubuntu-latest
-    environment: oci-testhub   # troque pelo nome exato do seu Environment
+    environment: teste-hub   # troque pelo nome exato do seu Environment
     defaults:
       run:
         working-directory: layer/${{ inputs.layer }}

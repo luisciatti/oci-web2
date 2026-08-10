@@ -22,7 +22,7 @@ on:
 jobs:
   deploy:
     runs-on: ubuntu-latest
-    environment: teste-hub   # troque pelo nome exato do seu Environment
+    environment: teste-hub 
     defaults:
       run:
         working-directory: layer/${{ inputs.layer }}

@@ -21,4 +21,5 @@ terraform.rc
 .vscode/
 .idea/
 
-/layer/.env
+#env
+layer/.env

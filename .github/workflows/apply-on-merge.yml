@@ -1,40 +1,46 @@
-name: Deploy Core
+name: Apply on Merge
 
 on:
-  workflow_dispatch:
-    inputs:
-      layer:
-        description: 'Layer a implantar'
-        required: true
-        type: choice
-        options:
-          - core/global
-          - core/security
-          - core/network
-          - environment
-          - database
-      action:
-        description: 'Ação'
-        required: true
-        type: choice
-        options:
-          - plan
-          - apply
+  push:
+    branches: [main]
+    paths:
+      - 'layer/**'
 
 jobs:
-  deploy:
+  detect-layers:
+    runs-on: ubuntu-latest
+    outputs:
+      layers: ${{ steps.detect.outputs.layers }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - id: detect
+        run: |
+          LAYERS=$(git diff --name-only ${{ github.event.before }} ${{ github.event.after }} -- 'layer/*/*' \
+            | grep -oE '^layer/[^/]+/[^/]+' \
+            | sort -u \
+            | jq -R -s -c 'split("\n") | map(select(length > 0))')
+          echo "Layers alteradas: $LAYERS"
+          echo "layers=$LAYERS" >> "$GITHUB_OUTPUT"
+
+  apply:
+    needs: detect-layers
+    if: needs.detect-layers.outputs.layers != '[]'
     runs-on: ubuntu-latest
     environment: teste-hub
+    strategy:
+      fail-fast: false
+      matrix:
+        layer: ${{ fromJson(needs.detect-layers.outputs.layers) }}
     defaults:
       run:
-        working-directory: layer/${{ inputs.layer }}
-
+        working-directory: ${{ matrix.layer }}
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
-      - name: Setup OpenTofu
-        uses: opentofu/setup-opentofu@v1
+      - uses: opentofu/setup-opentofu@v1
         with:
           tofu_version: "1.12.5"
 
@@ -60,19 +66,7 @@ jobs:
           AWS_RESPONSE_CHECKSUM_VALIDATION: when_required
         run: tofu init
 
-      - name: Tofu Plan
-        if: inputs.action == 'plan'
-        env:
-          TF_VAR_tenancy_ocid: ${{ secrets.OCI_TENANCY_OCID }}
-          TF_VAR_region: ${{ secrets.OCI_REGION }}
-          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          AWS_REQUEST_CHECKSUM_CALCULATION: when_required
-          AWS_RESPONSE_CHECKSUM_VALIDATION: when_required
-        run: tofu plan
-
       - name: Tofu Apply
-        if: inputs.action == 'apply'
         env:
           TF_VAR_tenancy_ocid: ${{ secrets.OCI_TENANCY_OCID }}
           TF_VAR_region: ${{ secrets.OCI_REGION }}

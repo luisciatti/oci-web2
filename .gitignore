@@ -20,3 +20,6 @@ terraform.rc
 # Editor
 .vscode/
 .idea/
+
+#env
+layer/.env

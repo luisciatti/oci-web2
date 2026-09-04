@@ -1,9 +1,15 @@
 #!/usr/bin/env bash
-set -e
+# IMPORTANTE: este script deve ser executado com "source setup-env.sh",
+# nunca com "./setup-env.sh" — ele exporta variáveis para o seu shell atual.
+#
+# Propositalmente SEM "set -e": como o script é "sourceado", qualquer
+# set -e/set -u aqui passaria a valer para o seu terminal inteiro,
+# podendo encerrá-lo em caso de erro de um comando não relacionado.
 
-# Carrega credenciais AWS-style (backend S3-compatible) de um arquivo local, não commitado
-if [ -f "$(dirname "$0")/.env" ]; then
-  source "$(dirname "$0")/.env"
+ENV_FILE="$(dirname "${BASH_SOURCE[0]}")/.env"
+
+if [ -f "$ENV_FILE" ]; then
+  source "$ENV_FILE"
 else
   echo "Aviso: layer/.env não encontrado. Crie a partir de layer/.env.example"
 fi

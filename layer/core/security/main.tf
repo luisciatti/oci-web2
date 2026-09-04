@@ -5,7 +5,12 @@ terraform {
 			source  = "oracle/oci"
 			version = "~> 8.0"
 		}
-	}
+		 random = {
+     	    source  = "hashicorp/random"
+      		version = "~> 3.6"
+    	}
+		}
+	
 
 	backend "s3" {
 		bucket                      = "oci-testhub-tfstate"
@@ -67,4 +72,31 @@ resource "oci_kms_key" "app" {
 		algorithm = "AES"
 		length    = 32
 	}
+}
+
+resource "random_password" "db_admin" {
+  length      = 20
+  special     = true
+  min_upper   = 2
+  min_lower   = 2
+  min_numeric = 2
+
+  override_special = "!#$%&*()-_=+[]{}<>:?"
+}
+
+resource "oci_vault_secret" "db_admin_password" {
+  compartment_id = data.terraform_remote_state.global.outputs.app_compartment_id
+  vault_id       = oci_kms_vault.main.id
+  key_id         = oci_kms_key.app.id                
+  secret_name    = "secret-db-admin-password"
+
+  secret_content {
+    content_type = "BASE64"
+    content      = base64encode(random_password.db_admin.result)
+  }
+
+  freeform_tags = {
+    ManagedBy = "tofu"
+    Stack     = "security"
+  }
 }

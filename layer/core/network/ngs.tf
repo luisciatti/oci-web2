@@ -1,13 +1,13 @@
 # ---------- Grupos ----------
 resource "oci_core_network_security_group" "public" {
   compartment_id = data.terraform_remote_state.global.outputs.app_compartment_id
-  vcn_id         = data.terraform_remote_state.global.outputs.vcn_id
+  vcn_id         = oci_core_vcn.brazil_vcn.id
   display_name   = "nsg-public"
 }
 
 resource "oci_core_network_security_group" "private" {
   compartment_id = data.terraform_remote_state.global.outputs.app_compartment_id
-  vcn_id         = data.terraform_remote_state.global.outputs.vcn_id
+  vcn_id         = oci_core_vcn.brazil_vcn.id
   display_name   = "nsg-private"
 }
 

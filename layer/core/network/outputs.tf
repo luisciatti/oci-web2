@@ -27,3 +27,7 @@ output "nsg_public_id" {
 output "nsg_private_id" {
   value = oci_core_network_security_group.private.id
 }
+
+output "bastion_id" {
+  value = oci_bastion_bastion.main.id
+}

@@ -40,6 +40,7 @@ resource "oci_core_network_security_group_security_rule" "public_ingress" {
 # ---------- Regra do nsg-public: saída ----------
 resource "oci_core_network_security_group_security_rule" "public_egress" {
   # direction EGRESS, protocol "all", destination 0.0.0.0/0, destination_type "CIDR_BLOCK"
+  network_security_group_id = oci_core_network_security_group.public.id
   direction                 = "EGRESS"
   protocol                  = "all"
   destination               = "0.0.0.0/0"

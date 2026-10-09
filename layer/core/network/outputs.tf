@@ -19,3 +19,11 @@ output "service_gateway_id" {
   description = "O OCID do Service Gateway"
   value       = oci_core_service_gateway.main.id
 }
+
+output "nsg_public_id" {
+  value = oci_core_network_security_group.public.id
+}
+
+output "nsg_private_id" {
+  value = oci_core_network_security_group.private.id
+}

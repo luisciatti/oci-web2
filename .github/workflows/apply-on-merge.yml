@@ -19,7 +19,8 @@ jobs:
       - id: detect
         run: |
           LAYERS=$(git diff --name-only ${{ github.event.before }} ${{ github.event.after }} -- 'layer/*/*' \
-            | grep -oE '^layer/[^/]+/[^/]+' \
+            | grep -oE '^layer/((core|application)/[^/]+|environment|database)' \
+            | grep -v '^layer/core/foundation$' \
             | sort -u \
             | jq -R -s -c 'split("\n") | map(select(length > 0))')
           echo "Layers alteradas: $LAYERS"

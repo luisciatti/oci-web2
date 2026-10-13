@@ -80,7 +80,6 @@ data "terraform_remote_state" "security" {
 locals {
   compartment_id = data.terraform_remote_state.global.outputs.app_compartment_id
   subnet_id      = data.terraform_remote_state.network.outputs.private_subnet_id
-  nsg_id         = data.terraform_remote_state.network.outputs.nsg_private_id
 }
 
 data "oci_identity_availability_domains" "ads" {
@@ -101,8 +100,6 @@ resource "oci_mysql_mysql_db_system" "main" {
   availability_domain = data.oci_identity_availability_domains.ads.availability_domains[0].name
   compartment_id      = local.compartment_id
   subnet_id           = local.subnet_id
-  nsg_ids             = [local.nsg_id]
-
   # Pontos de custo: nao altere sem conferir
   shape_name              = "MySQL.Free"
   data_storage_size_in_gb = 50

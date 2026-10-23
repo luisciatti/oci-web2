@@ -1,0 +1,14 @@
+output "dynamic_group_id" {
+  description = "OCID do grupo dinamico da VM da aplicacao"
+  value       = oci_identity_dynamic_group.app_vm.id
+}
+
+output "dynamic_group_name" {
+  description = "Nome do grupo dinamico (usado nas politicas)"
+  value       = oci_identity_dynamic_group.app_vm.name
+}
+
+output "policy_id" {
+  description = "OCID da politica que permite a VM ler os segredos do app"
+  value       = oci_identity_policy.app_vm_secrets.id
+}

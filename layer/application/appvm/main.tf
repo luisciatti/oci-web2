@@ -129,7 +129,7 @@ data "oci_core_images" "ubuntu" {
 
 locals {
   image_tag      = "sha-53c8ca4" 
-  ssh_public_key = file("~/.ssh/bastion_key.pub")
+  ssh_public_key = "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAACAQDOiw7VCOxZkNujM+v3ieNJbYw/haVXG7U5JvTtXNdVYed0lnXS9JD9doBkLYmbBpMm0cUAV7t9fAkyMBfSvIHZjRJMjHoPRNid4xzrq6LvGE6614pcs+SwFgWg3a2+HlQL4F4diitQF23cUfczlr9mZS0YoFKFU3XMg+lZWX/BoRLkYI1cukCFZJAxJEiJMfdFrk7lh8yTothVdlvqfmnDjST0mDND+lfNZnmfaBD/maFtulefrdWgcxM/7LCkLoITU6HNQ5CddvYfywzAb5Zc5sg/gkdG5tl/hfQFyFJslQZjDKwMPYF6aOGYUYXU46Z6ItCpP7Oyj0YNqOMcLtzbuZc6Sd1Bn2hVRIHEel28ERtdnEdmOGFEmhP7Z01QXsd6WMrjPgltiaMf3OlEIU1NN+Lv3KYZXLNFdw1bubyZtS/1gueyqCyrRnRm7b0X8EAFYnOv6aKt3l6aF2C9+Uz0Tvcz97706bL+KXU8UwbStVdDt5osW60QZCA8WWqRdJDEcwsxoNPLSCEzOaH1J6wxfJ1FeM+pT5Q8WKuT+5vPgeVVsFXs9ID5I2xc9hY1iN/FL3Ykpe6kmaxmrFGyQAiUyLG61ppTg7pSq+Mo+R3lhICsKPzccMhRPkTlmV0JGQCcRO1QBmCC3WZtHm07sSaoteqrYyWinHOU+7k+h0uFPQ== luisciatti@Laptop-Luis"
 }
 
 resource "oci_core_instance" "app" {

@@ -70,17 +70,17 @@ locals {
 }
 
 resource "oci_identity_dynamic_group" "app_vm" {
-  compartment_id = local.compartment_id
+  compartment_id = var.tenancy_ocid        
   name           = "dg-app-vm"
   description    = "Instancias da aplicacao no cmp-app"
-  matching_rule  = "ALL {instance.compartment.id = '${local.compartment_id}'}"
+  matching_rule  = "ALL {instance.compartment.id = '${local.compartment_id}'}"   
 }
 
 resource "oci_identity_policy" "app_vm_secrets" {
-  compartment_id = local.compartment_id
+  compartment_id = var.tenancy_ocid          
   name           = "policy-app-vm-secrets"
   description    = "A VM da aplicacao le somente os segredos do app"
   statements = [
-    "Allow dynamic-group ${oci_identity_dynamic_group.app_vm.name} to read secret-bundles in compartment id ${local.compartment_id} where any {target.secret.id = '${local.jwt_secret_id}', target.secret.id = '${local.db_app_secret_id}'}"
+    "Allow dynamic-group ${oci_identity_dynamic_group.app_vm.name} to read secret-bundles in compartment id ${local.compartment_id} where any {target.secret.id = '${local.jwt_secret_id}', target.secret.id = '${local.db_app_secret_id}'}"    # igual
   ]
 }

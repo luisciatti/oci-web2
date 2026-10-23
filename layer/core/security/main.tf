@@ -100,3 +100,50 @@ resource "oci_vault_secret" "db_admin_password" {
     Stack     = "security"
   }
 }
+resource "random_password" "jwt_secret" {
+  length  = 64
+  special = false
+}
+
+resource "oci_vault_secret" "jwt_secret" {
+  compartment_id = data.terraform_remote_state.global.outputs.app_compartment_id
+  vault_id       = oci_kms_vault.main.id
+  key_id         = oci_kms_key.app.id
+  secret_name    = "secret-app-jwt"
+
+  secret_content {
+    content_type = "BASE64"
+    content      = base64encode(random_password.jwt_secret.result)
+  }
+
+  freeform_tags = {
+    ManagedBy = "tofu"
+    Stack     = "security"
+  }
+}
+resource "random_password" "db_app" {
+  length           = 24
+  special          = false
+  min_upper        = 2
+  min_lower        = 2
+  min_numeric      = 2
+  min_special      = 1
+  override_special = "!#$%&*()-_=+[]{}<>:?"
+}
+
+resource "oci_vault_secret" "db_app_password" {
+  compartment_id = data.terraform_remote_state.global.outputs.app_compartment_id
+  vault_id       = oci_kms_vault.main.id
+  key_id         = oci_kms_key.app.id
+  secret_name    = "secret-db-app-password"
+
+  secret_content {
+    content_type = "BASE64"
+    content      = base64encode(random_password.db_app.result)
+  }
+
+  freeform_tags = {
+    ManagedBy = "tofu"
+    Stack     = "security"
+  }
+}

@@ -12,3 +12,12 @@ output "policy_id" {
   description = "OCID da politica que permite a VM ler os segredos do app"
   value       = oci_identity_policy.app_vm_secrets.id
 }
+output "instance_id" {
+  description = "OCID da instancia da VM da aplicacao"
+  value       = oci_core_instance.app.id
+}
+
+output "private_ip" {
+  description = "IP privado da instancia da VM da aplicacao"
+  value       = oci_core_instance.app.private_ip
+}

@@ -150,14 +150,16 @@ resource "oci_core_instance" "app" {
   }
 
   create_vnic_details {
-    subnet_id        = data.terraform_remote_state.network.outputs.private_subnet_id 
+    subnet_id        = data.terraform_remote_state.network.outputs.private_subnet_id
     assign_public_ip = false
-    nsg_ids = [data.terraform_remote_state.network.outputs.nsg_private_id]
+    nsg_ids          = [data.terraform_remote_state.network.outputs.nsg_private_id]
   }
 
   metadata = {
     ssh_authorized_keys = local.ssh_public_key
     user_data = base64encode(templatefile("${path.module}/bootstrap.sh.tftpl", {
+      domain        = "diagramcode.online"
+      acme_staging  = "true"
       db_host       = data.terraform_remote_state.database.outputs.db_private_ip
       db_secret_id  = local.db_app_secret_id
       jwt_secret_id = local.jwt_secret_id

@@ -29,6 +29,15 @@ ${deploy_script}
 APP_DEPLOY_EOF
 chmod 755 /usr/local/bin/app-deploy.sh
 
+# Monitoramento (Prometheus + Grafana): arquivos vêm de files/monitoring/
+# (cada arquivo chega compactado em base64; a senha do Grafana é gerada pelo próprio monitoring-up.sh)
+mkdir -p /opt/monitoring
+%{ for path, content in monitoring_files ~}
+mkdir -p "$(dirname "/opt/monitoring/${path}")"
+echo '${content}' | base64 -d | gunzip > "/opt/monitoring/${path}"
+%{ endfor ~}
+chmod 755 /opt/monitoring/monitoring-up.sh
+
 cat > /etc/systemd/system/app-deploy.service <<'UNIT_EOF'
 [Unit]
 Description=Deploy da versao prod do app
@@ -57,3 +66,6 @@ systemctl enable --now app-deploy.timer
 
 # Primeiro deploy. Se a policy do IAM ainda não propagou, o timer tenta de novo.
 /usr/local/bin/app-deploy.sh || true
+
+# Sobe Prometheus + Grafana (os containers voltam sozinhos em reboot: --restart unless-stopped)
+/opt/monitoring/monitoring-up.sh || true

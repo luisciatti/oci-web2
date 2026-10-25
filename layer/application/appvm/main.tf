@@ -158,13 +158,15 @@ resource "oci_core_instance" "app" {
   metadata = {
     ssh_authorized_keys = local.ssh_public_key
     user_data = base64encode(templatefile("${path.module}/bootstrap.sh.tftpl", {
-      domain        = "diagramcode.online"
-      acme_staging  = "true"
-      db_host       = data.terraform_remote_state.database.outputs.db_private_ip
-      db_secret_id  = local.db_app_secret_id
-      jwt_secret_id = local.jwt_secret_id
-      image_repo    = "ghcr.io/luisciatti/web2-backend"
-      deploy_script = file("${path.module}/files/app-deploy.sh")
+      domain           = "diagramcode.online"
+      acme_staging     = "true"
+      db_host          = data.terraform_remote_state.database.outputs.db_private_ip
+      db_secret_id     = local.db_app_secret_id
+      jwt_secret_id    = local.jwt_secret_id
+      image_repo       = "ghcr.io/luisciatti/web2-backend"
+      deploy_script    = file("${path.module}/files/app-deploy.sh")
+      acme_staging     = "false"
+      monitoring_files = local.monitoring_files
     }))
   }
 
@@ -175,5 +177,13 @@ resource "oci_core_instance" "app" {
   freeform_tags = {
     ManagedBy = "tofu"
     Stack     = "appvm"
+  }
+}
+
+locals {
+  monitoring_dir = "${path.module}/files/monitoring"
+  monitoring_files = {
+    for f in fileset(local.monitoring_dir, "**") :
+    f => base64gzip(file("${local.monitoring_dir}/${f}"))
   }
 }

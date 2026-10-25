@@ -68,13 +68,13 @@ resource "oci_core_network_security_group_security_rule" "private_ingress_vcn" {
   direction                 = "INGRESS"
   protocol                  = "all"
   description               = "Todo tráfego interno da VCN"
-  source                    = oci_core_vcn.brazil_vcn.cidr_block    
+  source                    = oci_core_vcn.brazil_vcn.cidr_block
   source_type               = "CIDR_BLOCK"
 }
 
 # 2) Portas do Kubernetes, só de origem interna
 resource "oci_core_network_security_group_security_rule" "private_ingress_k8s" {
-  for_each = local.private_ingress_ports
+  for_each                  = local.private_ingress_ports
   network_security_group_id = oci_core_network_security_group.private.id
   direction                 = "INGRESS"
   protocol                  = "6"
@@ -100,4 +100,28 @@ resource "oci_core_network_security_group_security_rule" "private_egress" {
   protocol                  = "all"
   destination               = "0.0.0.0/0"
   destination_type          = "CIDR_BLOCK"
+}
+
+locals {
+  private_web_ports = {
+    http  = 80
+    https = 443
+  }
+}
+
+resource "oci_core_network_security_group_security_rule" "private_ingress_web" {
+  for_each                  = local.private_web_ports
+  network_security_group_id = oci_core_network_security_group.private.id
+  direction                 = "INGRESS"
+  protocol                  = "6"
+  description               = "Entrada TCP ${each.value}"
+  source                    = "0.0.0.0/0"
+  source_type               = "CIDR_BLOCK"
+
+  tcp_options {
+    destination_port_range {
+      min = each.value
+      max = each.value
+    }
+  }
 }

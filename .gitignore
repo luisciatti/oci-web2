@@ -23,3 +23,7 @@ terraform.rc
 
 #env
 layer/.env
+
+.env
+.env.*
+!.env.example

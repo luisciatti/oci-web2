@@ -8,6 +8,7 @@ flock -n 9 || exit 0
 # Config escrita no primeiro boot: DB_HOST, DB_SECRET_ID, JWT_SECRET_ID, IMAGE_REPO
 source /etc/app/deploy.conf
 IMAGE="$IMAGE_REPO:prod"
+FAILED_FILE=/var/lib/app-deploy.failed
 
 get_secret() {
   for i in $(seq 1 5); do
@@ -45,6 +46,12 @@ if [ "$NEW" = "$CUR" ] && [ "$RUNNING" = "true" ]; then
   exit 0   # já está na versão certa
 fi
 
+# Esta versão já falhou antes: não tenta de novo até sair outra
+if [ -f "$FAILED_FILE" ] && [ "$(cat "$FAILED_FILE")" = "$NEW" ]; then
+  echo "versão $NEW já falhou antes, ignorando até sair outra"
+  exit 0
+fi
+
 # 2. guarda a atual para rollback
 if [ -n "$CUR" ]; then docker tag "$CUR" web2-backend:previous; fi
 
@@ -64,11 +71,13 @@ mkdir -p /etc/app
 run_app "$IMAGE"
 if healthy; then
   echo "deploy ok: $NEW"
+  rm -f "$FAILED_FILE"
   docker image prune -f >/dev/null
   exit 0
 fi
 
-# 5. falhou: rollback
+# 5. falhou: marca a versão e faz rollback
 echo "deploy FALHOU, voltando para a versão anterior"
+echo "$NEW" > "$FAILED_FILE"
 if [ -n "$CUR" ]; then run_app web2-backend:previous; fi
 exit 1

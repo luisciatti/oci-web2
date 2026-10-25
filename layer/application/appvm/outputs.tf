@@ -21,3 +21,8 @@ output "private_ip" {
   description = "IP privado da instancia da VM da aplicacao"
   value       = oci_core_instance.app.private_ip
 }
+
+output "vm_private_ip" {
+  description = "IP privado da instancia da VM da aplicacao"
+  value       = oci_core_instance.app.private_ip
+}

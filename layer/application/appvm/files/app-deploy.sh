@@ -50,7 +50,7 @@ write_caddyfile() {
     if [ "$ACME_STAGING" = "true" ]; then
       printf '{\n\tacme_ca https://acme-staging-v02.api.letsencrypt.org/directory\n}\n\n'
     fi
-    printf '%s {\n\tencode zstd gzip\n\treverse_proxy app:8080\n}\n' "$DOMAIN"
+        printf '%s {\n\tencode zstd gzip\n\thandle /actuator/* {\n\t\trespond 404\n\t}\n\thandle {\n\t\treverse_proxy app:8080\n\t}\n}\n' "$DOMAIN"
   } > "$tmp"
   mkdir -p "$CADDY_DIR"
   if ! cmp -s "$tmp" "$CADDY_DIR/Caddyfile"; then

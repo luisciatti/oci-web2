@@ -150,8 +150,9 @@ resource "oci_core_instance" "app" {
   }
 
   create_vnic_details {
-    subnet_id        = data.terraform_remote_state.network.outputs.private_subnet_id
+    subnet_id        = data.terraform_remote_state.network.outputs.private_subnet_id 
     assign_public_ip = false
+    nsg_ids = [data.terraform_remote_state.network.outputs.nsg_private_id]
   }
 
   metadata = {

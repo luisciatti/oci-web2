@@ -63,31 +63,6 @@ data "terraform_remote_state" "security" {
   }
 }
 
-locals {
-  compartment_id   = data.terraform_remote_state.global.outputs.app_compartment_id
-  jwt_secret_id    = data.terraform_remote_state.security.outputs.jwt_secret_id
-  db_app_secret_id = data.terraform_remote_state.security.outputs.db_app_secret_id
-}
-
-resource "oci_identity_dynamic_group" "app_vm" {
-  compartment_id = var.tenancy_ocid        
-  name           = "dg-app-vm"
-  description    = "Instancias da aplicacao no cmp-app"
-  matching_rule  = "ALL {instance.compartment.id = '${local.compartment_id}'}"   
-}
-
-resource "oci_identity_policy" "app_vm_secrets" {
-  compartment_id = var.tenancy_ocid          
-  name           = "policy-app-vm-secrets"
-  description    = "A VM da aplicacao le somente os segredos do app"
-  statements = [
-    "Allow dynamic-group ${oci_identity_dynamic_group.app_vm.name} to read secret-bundles in compartment id ${local.compartment_id} where any {target.secret.id = '${local.jwt_secret_id}', target.secret.id = '${local.db_app_secret_id}'}"  
-  ]
-}
-
-data "oci_identity_availability_domains" "ads" {
-  compartment_id = local.compartment_id
-}
 data "terraform_remote_state" "network" {
   backend = "s3"
   config = {
@@ -118,6 +93,32 @@ data "terraform_remote_state" "database" {
   }
 }
 
+locals {
+  compartment_id   = data.terraform_remote_state.global.outputs.app_compartment_id
+  jwt_secret_id    = data.terraform_remote_state.security.outputs.jwt_secret_id
+  db_app_secret_id = data.terraform_remote_state.security.outputs.db_app_secret_id
+}
+
+resource "oci_identity_dynamic_group" "app_vm" {
+  compartment_id = var.tenancy_ocid
+  name           = "dg-app-vm"
+  description    = "Instancias da aplicacao no cmp-app"
+  matching_rule  = "ALL {instance.compartment.id = '${local.compartment_id}'}"
+}
+
+resource "oci_identity_policy" "app_vm_secrets" {
+  compartment_id = var.tenancy_ocid
+  name           = "policy-app-vm-secrets"
+  description    = "A VM da aplicacao le somente os segredos do app"
+  statements = [
+    "Allow dynamic-group ${oci_identity_dynamic_group.app_vm.name} to read secret-bundles in compartment id ${local.compartment_id} where any {target.secret.id = '${local.jwt_secret_id}', target.secret.id = '${local.db_app_secret_id}'}"
+  ]
+}
+
+data "oci_identity_availability_domains" "ads" {
+  compartment_id = local.compartment_id
+}
+
 data "oci_core_images" "ubuntu" {
   compartment_id           = local.compartment_id
   operating_system         = "Canonical Ubuntu"
@@ -128,7 +129,6 @@ data "oci_core_images" "ubuntu" {
 }
 
 locals {
-  image_tag      = "sha-53c8ca4" 
   ssh_public_key = "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAACAQDOiw7VCOxZkNujM+v3ieNJbYw/haVXG7U5JvTtXNdVYed0lnXS9JD9doBkLYmbBpMm0cUAV7t9fAkyMBfSvIHZjRJMjHoPRNid4xzrq6LvGE6614pcs+SwFgWg3a2+HlQL4F4diitQF23cUfczlr9mZS0YoFKFU3XMg+lZWX/BoRLkYI1cukCFZJAxJEiJMfdFrk7lh8yTothVdlvqfmnDjST0mDND+lfNZnmfaBD/maFtulefrdWgcxM/7LCkLoITU6HNQ5CddvYfywzAb5Zc5sg/gkdG5tl/hfQFyFJslQZjDKwMPYF6aOGYUYXU46Z6ItCpP7Oyj0YNqOMcLtzbuZc6Sd1Bn2hVRIHEel28ERtdnEdmOGFEmhP7Z01QXsd6WMrjPgltiaMf3OlEIU1NN+Lv3KYZXLNFdw1bubyZtS/1gueyqCyrRnRm7b0X8EAFYnOv6aKt3l6aF2C9+Uz0Tvcz97706bL+KXU8UwbStVdDt5osW60QZCA8WWqRdJDEcwsxoNPLSCEzOaH1J6wxfJ1FeM+pT5Q8WKuT+5vPgeVVsFXs9ID5I2xc9hY1iN/FL3Ykpe6kmaxmrFGyQAiUyLG61ppTg7pSq+Mo+R3lhICsKPzccMhRPkTlmV0JGQCcRO1QBmCC3WZtHm07sSaoteqrYyWinHOU+7k+h0uFPQ== luisciatti@Laptop-Luis"
 }
 
@@ -160,12 +160,13 @@ resource "oci_core_instance" "app" {
       db_host       = data.terraform_remote_state.database.outputs.db_private_ip
       db_secret_id  = local.db_app_secret_id
       jwt_secret_id = local.jwt_secret_id
-      image         = "ghcr.io/luisciatti/web2-backend:${local.image_tag}"
+      image_repo    = "ghcr.io/luisciatti/web2-backend"
+      deploy_script = file("${path.module}/files/app-deploy.sh")
     }))
   }
 
   lifecycle {
-    ignore_changes = [source_details[0].source_id]
+    ignore_changes = [source_details[0].source_id, metadata["user_data"]]
   }
 
   freeform_tags = {

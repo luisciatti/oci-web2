@@ -4,34 +4,54 @@ exec > >(tee -a /var/log/app-bootstrap.log) 2>&1
 
 export DEBIAN_FRONTEND=noninteractive
 apt-get update -y
-apt-get install -y docker.io python3-venv
+apt-get install -y docker.io python3-venv curl
+systemctl enable --now docker
 
 python3 -m venv /opt/oci-cli
 /opt/oci-cli/bin/pip install --quiet oci-cli
 
-# A politica pode levar alguns minutos para valer: tenta por ate ~10 minutos
-get_secret() {
-  for i in $(seq 1 30); do
-    if /opt/oci-cli/bin/oci --auth instance_principal secrets secret-bundle get \
-         --secret-id "$1" --query 'data."secret-bundle-content".content' \
-         --raw-output | base64 -d; then
-      return 0
-    fi
-    sleep 20
-  done
-  return 1
-}
-
-DB_PASSWORD=$(get_secret "${db_secret_id}")
-JWT_SECRET=$(get_secret "${jwt_secret_id}")
-
-umask 077
+# Config lida pelo app-deploy.sh (só IDs e endereços, nenhum segredo)
 mkdir -p /etc/app
-printf 'DB_URL=jdbc:mysql://%s:3306/diagramcode\n' "${db_host}" > /etc/app/app.env
-printf 'DB_USERNAME=diagramcode_app\n' >> /etc/app/app.env
-printf 'DB_PASSWORD=%s\n' "$DB_PASSWORD" >> /etc/app/app.env
-printf 'JWT_SECRET=%s\n' "$JWT_SECRET" >> /etc/app/app.env
+umask 077
+cat > /etc/app/deploy.conf <<'DEPLOY_CONF_EOF'
+DB_HOST=${db_host}
+DB_SECRET_ID=${db_secret_id}
+JWT_SECRET_ID=${jwt_secret_id}
+IMAGE_REPO=${image_repo}
+DEPLOY_CONF_EOF
+umask 022
 
-docker rm -f app 2>/dev/null || true
-docker run -d --name app --restart unless-stopped -p 8080:8080 \
-  --env-file /etc/app/app.env "${image}"
+# Script de deploy (conteúdo vem de files/app-deploy.sh)
+cat > /usr/local/bin/app-deploy.sh <<'APP_DEPLOY_EOF'
+${deploy_script}
+APP_DEPLOY_EOF
+chmod 755 /usr/local/bin/app-deploy.sh
+
+cat > /etc/systemd/system/app-deploy.service <<'UNIT_EOF'
+[Unit]
+Description=Deploy da versao prod do app
+After=docker.service network-online.target
+Requires=docker.service
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/bin/app-deploy.sh
+UNIT_EOF
+
+cat > /etc/systemd/system/app-deploy.timer <<'UNIT_EOF'
+[Unit]
+Description=Checa nova versao do app a cada 5 min
+
+[Timer]
+OnBootSec=2min
+OnUnitActiveSec=5min
+
+[Install]
+WantedBy=timers.target
+UNIT_EOF
+
+systemctl daemon-reload
+systemctl enable --now app-deploy.timer
+
+# Primeiro deploy. Se a policy do IAM ainda não propagou, o timer tenta de novo.
+/usr/local/bin/app-deploy.sh || true
